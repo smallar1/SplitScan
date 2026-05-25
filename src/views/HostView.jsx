@@ -9,11 +9,16 @@ export default function HostView() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrResult, setOcrResult] = useState(null);
+  const [generatedSessionId, setGeneratedSessionId] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleDemoMock = () => {
     setIsProcessing(true);
     setOcrProgress(0);
+    setGeneratedSessionId(null);
+    setCopied(false);
     const interval = setInterval(() => {
       setOcrProgress(prev => {
         if (prev >= 90) {
@@ -47,6 +52,8 @@ export default function HostView() {
 
     setIsProcessing(true);
     setOcrProgress(0);
+    setGeneratedSessionId(null);
+    setCopied(false);
 
     Tesseract.recognize(
       file,
@@ -137,6 +144,119 @@ export default function HostView() {
     const foodSubtotal = ocrResult.items.reduce((sum, item) => sum + item.price, 0);
     return foodSubtotal + ocrResult.tax + ocrResult.tip;
   };
+
+  const handleCreateSession = () => {
+    if (!ocrResult || isGenerating) return;
+    
+    setIsGenerating(true);
+
+    fetch('/api/receipt', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        items: ocrResult.items,
+        tax: ocrResult.tax,
+        tip: ocrResult.tip,
+        numPeople: participantCount
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setIsGenerating(false);
+        if (data.success) {
+          setGeneratedSessionId(data.sessionId);
+        } else {
+          alert('Failed to generate split session: ' + data.error);
+        }
+      })
+      .catch(err => {
+        setIsGenerating(false);
+        console.error('API Error:', err);
+        alert('Server connection error. Failed to save session.');
+      });
+  };
+
+  const getShareUrl = () => {
+    return `${window.location.origin}/split/${generatedSessionId}`;
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(getShareUrl())
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Clipboard copy error:', err);
+      });
+  };
+
+  const handleReset = () => {
+    setOcrResult(null);
+    setGeneratedSessionId(null);
+    setParticipantCount(2);
+  };
+
+  // Render sharing success state
+  if (generatedSessionId) {
+    const shareUrl = getShareUrl();
+
+    return (
+      <div className="w-full max-w-md mx-auto px-4 py-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center space-y-6">
+          <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 text-2xl font-bold animate-bounce">
+            🎉
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-800">Split Created!</h2>
+            <p className="text-sm text-slate-500">Your friends can now join and claim their items.</p>
+          </div>
+
+          {/* Share Box */}
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left space-y-3">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Share Link</label>
+            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5">
+              <input 
+                type="text" 
+                readOnly 
+                value={shareUrl}
+                className="w-full bg-transparent border-none outline-none font-medium text-slate-600 text-xs truncate"
+              />
+            </div>
+            <button 
+              onClick={handleCopyLink}
+              className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center ${
+                copied 
+                  ? 'bg-emerald-500 text-white shadow-md shadow-emerald-100' 
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100'
+              }`}
+            >
+              {copied ? 'Copied to Clipboard!' : 'Copy Link'}
+            </button>
+          </div>
+
+          {/* Quick actions */}
+          <div className="pt-2 flex flex-col space-y-2.5">
+            <a 
+              href={shareUrl}
+              className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-1.5"
+            >
+              Join Split as Participant
+              <ArrowRight className="w-4 h-4" />
+            </a>
+            <button 
+              onClick={handleReset}
+              className="w-full py-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl font-semibold text-sm transition-all cursor-pointer"
+            >
+              Scan Another Receipt
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
@@ -251,8 +371,12 @@ export default function HostView() {
             <span className="text-lg text-indigo-600">${calculateTotal().toFixed(2)}</span>
           </div>
 
-          <button className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2 group cursor-pointer">
-            Create Session & Share
+          <button 
+            onClick={handleCreateSession}
+            disabled={isGenerating}
+            className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
+          >
+            {isGenerating ? 'Generating Link...' : 'Create Session & Share'}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
@@ -260,4 +384,5 @@ export default function HostView() {
     </div>
   );
 }
+
 
