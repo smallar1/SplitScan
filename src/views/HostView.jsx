@@ -69,7 +69,6 @@ export default function HostView() {
       .then(({ data: { text } }) => {
         const parsed = parseReceiptText(text);
         
-        // If parser failed to find items, supply at least one empty template item
         if (parsed.items.length === 0) {
           parsed.items.push({
             id: `item-${Date.now()}`,
@@ -204,33 +203,33 @@ export default function HostView() {
     const shareUrl = getShareUrl();
 
     return (
-      <div className="w-full max-w-md mx-auto px-4 py-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center space-y-6">
-          <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 text-2xl font-bold animate-bounce">
+      <div className="w-full max-w-md mx-auto px-5 py-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-3xl p-6 border border-[#eef2f5] text-center space-y-6">
+          <div className="mx-auto w-16 h-16 bg-[#13c178]/10 rounded-2xl flex items-center justify-center text-2xl font-bold animate-bounce">
             🎉
           </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold text-slate-800">Split Created!</h2>
-            <p className="text-sm text-slate-500">Your friends can now join and claim their items.</p>
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-black text-[#032b4b]">Split Created!</h2>
+            <p className="text-sm font-semibold text-slate-400">Your friends can now join and claim their items.</p>
           </div>
 
           {/* Share Box */}
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left space-y-3">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Share Link</label>
-            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5">
+          <div className="bg-[#f5f8fa] border border-[#eef2f5] rounded-2xl p-4 text-left space-y-3">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Share Link</label>
+            <div className="flex items-center space-x-2 bg-white border border-[#eef2f5] rounded-xl px-3 py-2.5">
               <input 
                 type="text" 
                 readOnly 
                 value={shareUrl}
-                className="w-full bg-transparent border-none outline-none font-medium text-slate-600 text-xs truncate"
+                className="w-full bg-transparent border-none outline-none font-bold text-[#032b4b] text-xs truncate"
               />
             </div>
             <button 
               onClick={handleCopyLink}
-              className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center ${
+              className={`w-full py-3.5 px-4 rounded-xl text-sm font-black transition-all cursor-pointer flex items-center justify-center ${
                 copied 
-                  ? 'bg-emerald-500 text-white shadow-md shadow-emerald-100' 
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100'
+                  ? 'bg-[#13c178] text-white shadow-md shadow-[#13c178]/10' 
+                  : 'bg-[#0066fe] hover:bg-[#0052cc] text-white shadow-md shadow-[#0066fe]/15'
               }`}
             >
               {copied ? 'Copied to Clipboard!' : 'Copy Link'}
@@ -241,14 +240,14 @@ export default function HostView() {
           <div className="pt-2 flex flex-col space-y-2.5">
             <a 
               href={shareUrl}
-              className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-1.5"
+              className="w-full py-4 bg-[#032b4b] hover:bg-[#0b2c4d] text-white rounded-2xl font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-1.5"
             >
               Join Split as Participant
               <ArrowRight className="w-4 h-4" />
             </a>
             <button 
               onClick={handleReset}
-              className="w-full py-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl font-semibold text-sm transition-all cursor-pointer"
+              className="w-full py-3 bg-white border border-[#eef2f5] text-slate-500 hover:bg-slate-50 rounded-2xl font-bold text-sm transition-all cursor-pointer"
             >
               Scan Another Receipt
             </button>
@@ -259,21 +258,18 @@ export default function HostView() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
+    <div className="w-full max-w-md mx-auto px-5 py-6 space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center p-3 bg-indigo-50 rounded-2xl text-indigo-600 animate-pulse">
-          <Receipt className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">ScanSplit</h1>
-        <p className="text-sm text-slate-500">Scan your receipt, invite friends, and split instantly.</p>
+      <div className="text-center space-y-1.5">
+        <h1 className="text-3xl font-black tracking-tight text-[#032b4b]">Scan & Split</h1>
+        <p className="text-sm font-semibold text-slate-400">Snap a photo of the receipt, share the link, split the bill.</p>
       </div>
 
       {/* Main Actions */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
+      <div className="bg-white rounded-3xl p-6 border border-[#eef2f5] space-y-6">
         {/* Upload Box */}
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 block">Step 1: Upload Receipt</label>
+          <label className="text-xs font-black text-slate-400 uppercase tracking-wider block pl-1">Step 1: Upload Receipt</label>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -283,28 +279,26 @@ export default function HostView() {
           />
           <div 
             onClick={triggerFileSelect}
-            className={`border-2 border-dashed rounded-2xl p-8 transition-all duration-300 text-center cursor-pointer group ${
-              isProcessing 
-                ? 'border-indigo-300 bg-indigo-50/10 pointer-events-none' 
-                : 'border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/10'
+            className={`border border-[#eef2f5] rounded-3xl p-8 transition-all duration-200 text-center cursor-pointer group bg-[#f5f8fa] hover:bg-[#eef2f5] ${
+              isProcessing ? 'pointer-events-none opacity-80' : ''
             }`}
           >
             {isProcessing ? (
               <div className="flex flex-col items-center space-y-3 py-2">
-                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                <Loader2 className="w-8 h-8 text-[#0066fe] animate-spin" />
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-800">Processing receipt...</p>
-                  <p className="text-xs text-indigo-600 font-bold">{ocrProgress}% complete</p>
+                  <p className="text-sm font-black text-[#032b4b]">Analyzing Receipt...</p>
+                  <p className="text-xs text-[#0066fe] font-black">{ocrProgress}% complete</p>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-3">
-                <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-indigo-500 transition-colors">
+                <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-[#0066fe] transition-colors">
                   <Camera className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-800">Take a photo or upload image</p>
-                  <p className="text-xs text-slate-400">Supports JPG, PNG (Max 5MB)</p>
+                  <p className="text-sm font-extrabold text-[#032b4b]">Take a photo or upload image</p>
+                  <p className="text-xs text-slate-400 font-semibold">Supports JPG, PNG (Max 5MB)</p>
                 </div>
               </div>
             )}
@@ -315,31 +309,31 @@ export default function HostView() {
         <button 
           onClick={handleDemoMock}
           disabled={isProcessing}
-          className="w-full py-3 px-4 bg-indigo-50 text-indigo-600 hover:bg-indigo-100/80 rounded-2xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 px-4 bg-[#0066fe]/5 text-[#0066fe] hover:bg-[#0066fe]/10 rounded-2xl text-sm font-black transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 text-[#0066fe]" />
           {isProcessing ? 'Simulating OCR...' : 'Try Demo with Mock Receipt'}
         </button>
 
         {/* Split Count */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
-          <label htmlFor="num-people" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+        <div className="space-y-3 pt-2 border-t border-[#eef2f5]">
+          <label htmlFor="num-people" className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pl-1">
             <Users className="w-4 h-4 text-slate-400" />
             Step 2: Number of People Splitters
           </label>
-          <div className="flex items-center justify-between bg-slate-50 p-2 rounded-2xl border border-slate-100">
+          <div className="flex items-center justify-between bg-[#f5f8fa] p-2 rounded-2xl border border-[#eef2f5]">
             <button 
               type="button"
               onClick={() => setParticipantCount(Math.max(1, participantCount - 1))}
-              className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-100 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+              className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-100 rounded-xl font-black text-[#032b4b] shadow-sm transition-all cursor-pointer"
             >
               -
             </button>
-            <span className="text-lg font-bold text-slate-800">{participantCount}</span>
+            <span className="text-md font-extrabold text-[#032b4b]">{participantCount}</span>
             <button 
               type="button"
               onClick={() => setParticipantCount(participantCount + 1)}
-              className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-100 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+              className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-100 rounded-xl font-black text-[#032b4b] shadow-sm transition-all cursor-pointer"
             >
               +
             </button>
@@ -349,10 +343,10 @@ export default function HostView() {
 
       {/* Review Section */}
       {ocrResult && (
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-50">
-            <Sparkles className="w-5 h-5 text-emerald-500" />
-            <h3 className="text-md font-bold text-slate-800">Verify Receipt Items</h3>
+        <div className="bg-white rounded-3xl p-6 border border-[#eef2f5] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-2 pb-2 border-b border-[#eef2f5]">
+            <Sparkles className="w-5 h-5 text-[#13c178]" />
+            <h3 className="text-md font-black text-[#032b4b]">Verify Receipt Items</h3>
           </div>
           
           <ReceiptReview 
@@ -366,15 +360,15 @@ export default function HostView() {
             onUpdateTip={handleUpdateTip}
           />
 
-          <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-sm font-bold text-slate-800">
+          <div className="pt-2 border-t border-[#eef2f5] flex justify-between items-center text-sm font-black text-[#032b4b]">
             <span>Grand Total</span>
-            <span className="text-lg text-indigo-600">${calculateTotal().toFixed(2)}</span>
+            <span className="text-lg text-[#0066fe]">${calculateTotal().toFixed(2)}</span>
           </div>
 
           <button 
             onClick={handleCreateSession}
             disabled={isGenerating}
-            className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
+            className="w-full py-4 px-4 bg-[#0066fe] hover:bg-[#0052cc] text-white rounded-2xl font-extrabold transition-all shadow-lg shadow-[#0066fe]/20 flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
           >
             {isGenerating ? 'Generating Link...' : 'Create Session & Share'}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -384,5 +378,3 @@ export default function HostView() {
     </div>
   );
 }
-
-
