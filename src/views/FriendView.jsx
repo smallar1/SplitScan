@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { User, Users, Loader2, AlertCircle, Check, HelpCircle } from 'lucide-react';
 import { calculateMemberShare } from '../utils/calculator';
 import LiveCalculator from '../components/LiveCalculator';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function FriendView({ sessionId }) {
   const [userName, setUserName] = useState('');
@@ -9,9 +11,8 @@ export default function FriendView({ sessionId }) {
   const [receipt, setReceipt] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [claimedItems, setClaimedItems] = useState([]);
 
-  // Fetch receipt details on mount
+  // Real-time Firestore sync on mount
   useEffect(() => {
     if (!sessionId) {
       setError('Missing session ID');
@@ -22,97 +23,67 @@ export default function FriendView({ sessionId }) {
     setIsLoading(true);
     setError(null);
 
-    fetch(`/api/receipt/${sessionId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setReceipt(data.session);
+    const docRef = doc(db, 'sessions', sessionId);
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
+        setIsLoading(false);
+        if (docSnap.exists()) {
+          setReceipt(docSnap.data());
         } else {
-          setError(data.error || 'Failed to fetch receipt');
+          setError('Session not found');
         }
+      },
+      (err) => {
+        console.error('Firestore Error:', err);
+        setError('Could not connect to database.');
         setIsLoading(false);
-      })
-      .catch(err => {
-        console.error('API Error:', err);
-        setError('Could not connect to server.');
-        setIsLoading(false);
-      });
+      }
+    );
+
+    return () => unsubscribe();
   }, [sessionId]);
-
-  // Polling database claims update every 3 seconds for mock real-time syncing
-  useEffect(() => {
-    if (!sessionId || !isNameSet) return;
-
-    const interval = setInterval(() => {
-      fetch(`/api/receipt/${sessionId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setReceipt(prev => {
-              if (JSON.stringify(prev?.claims) !== JSON.stringify(data.session.claims)) {
-                return data.session;
-              }
-              return prev;
-            });
-          }
-        })
-        .catch(err => console.error('Polling error:', err));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [sessionId, isNameSet]);
 
   const handleJoin = (e) => {
     e.preventDefault();
     if (!userName.trim()) return;
-
     setIsNameSet(true);
-
-    if (receipt && receipt.claims) {
-      const preclaimed = [];
-      Object.keys(receipt.claims).forEach(itemId => {
-        if (receipt.claims[itemId].includes(userName)) {
-          preclaimed.push(itemId);
-        }
-      });
-      setClaimedItems(preclaimed);
-    }
   };
 
-  const toggleClaim = (itemId) => {
+  // Derive claimed items from receipt.claims mapped to current user
+  const claimedItems = receipt && receipt.claims
+    ? Object.keys(receipt.claims).filter(itemId => receipt.claims[itemId]?.includes(userName))
+    : [];
+
+  const toggleClaim = async (itemId) => {
     if (!receipt) return;
 
     const isChecked = claimedItems.includes(itemId);
-    const updatedClaims = isChecked
-      ? claimedItems.filter(id => id !== itemId)
-      : [...claimedItems, itemId];
 
-    // Optimistically update local claims array
-    setClaimedItems(updatedClaims);
-
-    // Sync claim state with Express API
-    fetch(`/api/receipt/${sessionId}/claim`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        userName,
-        claimedItemIds: updatedClaims
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setReceipt(prev => ({
-            ...prev,
-            claims: data.claims
-          }));
+    try {
+      const docRef = doc(db, 'sessions', sessionId);
+      const currentClaims = { ...(receipt.claims || {}) };
+      const claimers = currentClaims[itemId] || [];
+      
+      let updatedClaimers;
+      if (isChecked) {
+        updatedClaimers = claimers.filter(name => name !== userName);
+      } else {
+        if (!claimers.includes(userName)) {
+          updatedClaimers = [...claimers, userName];
+        } else {
+          updatedClaimers = claimers;
         }
-      })
-      .catch(err => {
-        console.error('Failed to sync claim:', err);
+      }
+      
+      currentClaims[itemId] = updatedClaimers;
+
+      await updateDoc(docRef, {
+        claims: currentClaims
       });
+    } catch (err) {
+      console.error('Failed to sync claim to Firestore:', err);
+    }
   };
 
   // Perform calculations using calculations utility

@@ -25,3 +25,9 @@ dist-ssr
 
 # Local Database files
 server/data/
+
+# Environment secrets
+.env
+*.env
+.env.local
+
