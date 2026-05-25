@@ -3,6 +3,9 @@ import { Camera, Users, Receipt, ArrowRight, Sparkles, Loader2 } from 'lucide-re
 import Tesseract from 'tesseract.js';
 import ReceiptReview from '../components/ReceiptReview';
 import { parseReceiptText } from '../utils/ocrParser';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+
 
 export default function HostView() {
   const [participantCount, setParticipantCount] = useState(2);
@@ -144,37 +147,27 @@ export default function HostView() {
     return foodSubtotal + ocrResult.tax + ocrResult.tip;
   };
 
-  const handleCreateSession = () => {
+  const handleCreateSession = async () => {
     if (!ocrResult || isGenerating) return;
     
     setIsGenerating(true);
 
-    fetch('/api/receipt', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    try {
+      const docRef = await addDoc(collection(db, 'sessions'), {
         items: ocrResult.items,
-        tax: ocrResult.tax,
-        tip: ocrResult.tip,
-        numPeople: participantCount
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setIsGenerating(false);
-        if (data.success) {
-          setGeneratedSessionId(data.sessionId);
-        } else {
-          alert('Failed to generate split session: ' + data.error);
-        }
-      })
-      .catch(err => {
-        setIsGenerating(false);
-        console.error('API Error:', err);
-        alert('Server connection error. Failed to save session.');
+        tax: Number(ocrResult.tax) || 0,
+        tip: Number(ocrResult.tip) || 0,
+        numPeople: Number(participantCount) || 1,
+        claims: {},
+        createdAt: serverTimestamp()
       });
+      setGeneratedSessionId(docRef.id);
+    } catch (err) {
+      console.error('Firestore Error:', err);
+      alert('Failed to save session. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const getShareUrl = () => {
