@@ -1,15 +1,31 @@
-import React, { useState } from 'react';
-import { Camera, Users, Receipt, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Camera, Users, Receipt, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import Tesseract from 'tesseract.js';
 import ReceiptReview from '../components/ReceiptReview';
+import { parseReceiptText } from '../utils/ocrParser';
 
 export default function HostView() {
   const [participantCount, setParticipantCount] = useState(2);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrResult, setOcrResult] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleDemoMock = () => {
     setIsProcessing(true);
+    setOcrProgress(0);
+    const interval = setInterval(() => {
+      setOcrProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 30;
+      });
+    }, 300);
+
     setTimeout(() => {
+      clearInterval(interval);
       setOcrResult({
         items: [
           { id: '1', name: 'Truffle Fries', price: 9.50 },
@@ -21,7 +37,59 @@ export default function HostView() {
         tip: 8.00
       });
       setIsProcessing(false);
+      setOcrProgress(100);
     }, 1500);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    setOcrProgress(0);
+
+    Tesseract.recognize(
+      file,
+      'eng',
+      {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.round(m.progress * 100));
+          }
+        }
+      }
+    )
+      .then(({ data: { text } }) => {
+        const parsed = parseReceiptText(text);
+        
+        // If parser failed to find items, supply at least one empty template item
+        if (parsed.items.length === 0) {
+          parsed.items.push({
+            id: `item-${Date.now()}`,
+            name: 'Scanned Item (Edit Me)',
+            price: 0.00
+          });
+        }
+        
+        setOcrResult(parsed);
+        setIsProcessing(false);
+      })
+      .catch((err) => {
+        console.error('OCR Error:', err);
+        alert('Failed to read receipt. Please enter details manually.');
+        setOcrResult({
+          items: [{ id: `item-${Date.now()}`, name: 'Item 1', price: 0.00 }],
+          tax: 0.00,
+          tip: 0.00
+        });
+        setIsProcessing(false);
+      });
+  };
+
+  const triggerFileSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleUpdateItem = (index, field, value) => {
@@ -86,16 +154,40 @@ export default function HostView() {
         {/* Upload Box */}
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700 block">Step 1: Upload Receipt</label>
-          <div className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl p-8 transition-all duration-300 text-center cursor-pointer group bg-slate-50/50 hover:bg-indigo-50/10">
-            <div className="flex flex-col items-center space-y-3">
-              <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-indigo-500 transition-colors">
-                <Camera className="w-8 h-8" />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept="image/*" 
+            className="hidden" 
+          />
+          <div 
+            onClick={triggerFileSelect}
+            className={`border-2 border-dashed rounded-2xl p-8 transition-all duration-300 text-center cursor-pointer group ${
+              isProcessing 
+                ? 'border-indigo-300 bg-indigo-50/10 pointer-events-none' 
+                : 'border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/10'
+            }`}
+          >
+            {isProcessing ? (
+              <div className="flex flex-col items-center space-y-3 py-2">
+                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-slate-800">Processing receipt...</p>
+                  <p className="text-xs text-indigo-600 font-bold">{ocrProgress}% complete</p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-800">Take a photo or upload image</p>
-                <p className="text-xs text-slate-400">Supports JPG, PNG (Max 5MB)</p>
+            ) : (
+              <div className="flex flex-col items-center space-y-3">
+                <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-indigo-500 transition-colors">
+                  <Camera className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-800">Take a photo or upload image</p>
+                  <p className="text-xs text-slate-400">Supports JPG, PNG (Max 5MB)</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
